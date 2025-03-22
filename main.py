@@ -1,3 +1,6 @@
+# ╔══════════════════════════════════════╗
+# ║           IMPORTS SECTION            ║
+# ╚══════════════════════════════════════╝
 import pandas as pd
 from freecurrencyapi import Client
 from datetime import datetime
@@ -6,17 +9,6 @@ import plotly.graph_objects as go
 import streamlit as st
 import os
 import numpy as np
-
-# ╔══════════════════════════════════════╗
-# ║           IMPORTS SECTION            ║
-# ╚══════════════════════════════════════╝
-# - pandas: สำหรับการจัดการและวิเคราะห์ข้อมูลในรูปแบบ DataFrame
-# - freecurrencyapi: ใช้ดึงข้อมูลอัตราแลกเปลี่ยนจาก API
-# - datetime: จัดการข้อมูลวันที่และเวลา
-# - plotly.express & plotly.graph_objects: สร้างกราฟแบบโต้ตอบได้
-# - streamlit: ใช้สร้าง Dashboard แบบโต้ตอบ
-# - os: จัดการไฟล์และพาธในระบบ
-# - numpy: ใช้สำหรับการคำนวณทางคณิตศาสตร์
 
 # ╔══════════════════════════════════════╗
 # ║           COLOR SETTINGS             ║
