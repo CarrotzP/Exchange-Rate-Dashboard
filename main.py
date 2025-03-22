@@ -223,9 +223,9 @@ fig10.add_hline(y=0, line_dash="dash", line_color="gray", line_width=0.5)
 # ║         STREAMLIT DASHBOARD          ║
 # ╚══════════════════════════════════════╝
 # สร้าง Dashboard ด้วย Streamlit เพื่อแสดงข้อมูลและกราฟ
-st.set_page_config(page_title="Exchange Rate Dashboard", layout="wide")
+st.set_page_config(page_title="Exchange Rate Analysis", layout="wide")
 
-st.markdown("<h1 style='text-align: center; color: #2E86C1;'>Exchange Rate Dashboard (2000-2025)</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #2E86C1;'>Exchange Rate Analysis (2000-2025)</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #666;'>Explore yearly exchange rates for Australian Dollar, Euro, Japanese Yen, Thai Baht, and U.K. Pound Sterling against USD</p>", unsafe_allow_html=True)
 
 with st.expander("Data & Statistics", expanded=True):
