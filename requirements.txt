@@ -1,0 +1,5 @@
+pandas
+freecurrencyapi
+plotly
+streamlit
+numpy
