@@ -303,5 +303,3 @@ st.markdown(
     "</p>",
     unsafe_allow_html=True
 )
-
-print("Dashboard พร้อมใช้งาน! รันด้วย 'streamlit run your_script.py'")
