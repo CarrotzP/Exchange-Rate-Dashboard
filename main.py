@@ -7,17 +7,48 @@ import streamlit as st
 import os
 import numpy as np
 
-# สีโทนพาสเทล (ปรับให้อ่อนลงเพื่อความสบายตา)
+# ╔══════════════════════════════════════╗
+# ║           IMPORTS SECTION            ║
+# ╚══════════════════════════════════════╝
+# - pandas: สำหรับการจัดการและวิเคราะห์ข้อมูลในรูปแบบ DataFrame
+# - freecurrencyapi: ใช้ดึงข้อมูลอัตราแลกเปลี่ยนจาก API
+# - datetime: จัดการข้อมูลวันที่และเวลา
+# - plotly.express & plotly.graph_objects: สร้างกราฟแบบโต้ตอบได้
+# - streamlit: ใช้สร้าง Dashboard แบบโต้ตอบ
+# - os: จัดการไฟล์และพาธในระบบ
+# - numpy: ใช้สำหรับการคำนวณทางคณิตศาสตร์
+
+# ╔══════════════════════════════════════╗
+# ║           COLOR SETTINGS             ║
+# ╚══════════════════════════════════════╝
+# กำหนดสีโทนพาสเทลสำหรับกราฟ เพื่อให้ดูสบายตา
 pastel_colors = ['#FFCCCB', '#ADD8E6', '#90EE90', '#D8BFD8', '#F0E68C', 
                  '#FFDAB9', '#E6E6FA', '#B0E0E6', '#FFFACD', '#D8BFD8']
 
-# --------------------- สร้าง Data Warehouse ---------------------
-csv_file = "exchange_rate_data.csv"  # แทนที่ด้วยชื่อไฟล์จริงของคุณ
-df_csv = pd.read_csv(csv_file)
-selected_columns = ["Date", "Australian Dollar", "Euro", "Japanese Yen", "Thai Baht", "U.K. Pound Sterling", "U.S. Dollar"]
-df_csv = df_csv[selected_columns]
-df_csv["Date"] = pd.to_datetime(df_csv["Date"])
+# ╔══════════════════════════════════════╗
+# ║         DATA WAREHOUSE CREATION      ║
+# ╚══════════════════════════════════════╝
+# โหลดข้อมูลจากไฟล์ CSV และ API เพื่อสร้าง Data Warehouse
+# รวมข้อมูลอัตราแลกเปลี่ยนตั้งแต่ปี 2000-2025
+csv_file = "exchange_rate_data.csv"  # ไฟล์ข้อมูลอัตราแลกเปลี่ยน
+if not os.path.exists(csv_file):
+    st.error(f"Error: File '{csv_file}' not found. Please ensure the file exists in the correct directory.")
+    st.stop()
 
+try:
+    df_csv = pd.read_csv(csv_file)
+except Exception as e:
+    st.error(f"Error reading CSV file: {str(e)}")
+    st.stop()
+
+selected_columns = ["Date", "Australian Dollar", "Euro", "Japanese Yen", "Thai Baht", "U.K. Pound Sterling", "U.S. Dollar"]
+if not all(col in df_csv.columns for col in selected_columns):
+    st.error(f"Error: CSV file must contain the following columns: {selected_columns}")
+    st.stop()
+df_csv = df_csv[selected_columns]
+df_csv["Date"] = pd.to_datetime(df_csv["Date"], errors='coerce')
+
+# ดึงข้อมูลรายปี (มกราคม) จาก CSV สำหรับปี 2000-2018
 df_csv_yearly = pd.DataFrame()
 for year in range(2000, 2019):
     jan_data = df_csv[(df_csv["Date"].dt.year == year) & (df_csv["Date"].dt.month == 1)]
@@ -25,9 +56,10 @@ for year in range(2000, 2019):
     if not valid_row.empty:
         df_csv_yearly = pd.concat([df_csv_yearly, valid_row])
 
+# ดึงข้อมูลจาก API สำหรับปี 2019-2025
 API_KEY = "fca_live_dHv55hoVcCdeyS8GFrG7adng5NG4wHKxxCFflRSW"
 client = Client(API_KEY)
-currencies = ["AUD", "EUR", "JPY", "THB", "GBP"]
+currencies_api = ["AUD", "EUR", "JPY", "THB", "GBP"]  # สกุลเงินที่ใช้ใน API
 
 def fetch_yearly_rates_complete(start_year=2019, end_year=2025):
     data = {}
@@ -36,9 +68,9 @@ def fetch_yearly_rates_complete(start_year=2019, end_year=2025):
         for day in range(2, 32):
             date_str = f"{year}-01-{day:02d}"
             try:
-                result = client.historical(date=date_str, base_currency="USD", currencies=currencies)
+                result = client.historical(date=date_str, base_currency="USD", currencies=currencies_api)
                 rates = result["data"][date_str]
-                if all(rates.get(currency) is not None for currency in currencies):
+                if all(rates.get(currency) is not None for currency in currencies_api):
                     data[date_str] = rates
                     found = True
                     break
@@ -54,35 +86,44 @@ api_file = "api_data_2019_2025.csv"
 if os.path.exists(api_file):
     print(f"โหลดข้อมูลจากไฟล์ {api_file}...")
     df_api_yearly = pd.read_csv(api_file)
-    df_api_yearly["Date"] = pd.to_datetime(df_api_yearly["Date"])
+    df_api_yearly["Date"] = pd.to_datetime(df_api_yearly["Date"], errors='coerce')
 else:
     print("ดึงข้อมูลจาก API (2019-2025)...")
-    df_api_yearly = fetch_yearly_rates_complete()
-    currency_name_mapping = {"AUD": "Australian Dollar", "EUR": "Euro", "JPY": "Japanese Yen", "THB": "Thai Baht", "GBP": "U.K. Pound Sterling"}
-    df_api_yearly = df_api_yearly.rename(columns=currency_name_mapping)
-    df_api_yearly["U.S. Dollar"] = 1.0
-    df_api_yearly.reset_index(inplace=True)
-    df_api_yearly.rename(columns={"index": "Date"}, inplace=True)
-    df_api_yearly.to_csv(api_file, index=False)
-    print(f"บันทึกข้อมูล API เป็น {api_file}")
+    try:
+        df_api_yearly = fetch_yearly_rates_complete()
+        currency_name_mapping = {"AUD": "Australian Dollar", "EUR": "Euro", "JPY": "Japanese Yen", "THB": "Thai Baht", "GBP": "U.K. Pound Sterling"}
+        df_api_yearly = df_api_yearly.rename(columns=currency_name_mapping)
+        df_api_yearly["U.S. Dollar"] = 1.0
+        df_api_yearly.reset_index(inplace=True)
+        df_api_yearly.rename(columns={"index": "Date"}, inplace=True)
+        df_api_yearly.to_csv(api_file, index=False)
+        print(f"บันทึกข้อมูล API เป็น {api_file}")
+    except Exception as e:
+        st.error(f"Error fetching API data: {str(e)}")
+        st.stop()
 
+# รวมข้อมูลจาก CSV และ API แล้วบันทึกเป็น Data Warehouse
 df_warehouse = pd.concat([df_csv_yearly, df_api_yearly], ignore_index=True).sort_values("Date")
 df_warehouse.to_csv("exchange_rate_warehouse_yearly_complete_2000_2025.csv", index=False)
 print("สร้าง Data Warehouse เสร็จสิ้น!")
 print(df_warehouse)
 
-# --------------------- การวิเคราะห์ข้อมูล ---------------------
+# ╔══════════════════════════════════════╗
+# ║           DATA ANALYSIS              ║
+# ╚══════════════════════════════════════╝
+# วิเคราะห์ข้อมูลอัตราแลกเปลี่ยนและคำนวณสถิติพื้นฐาน
 df = pd.read_csv("exchange_rate_warehouse_yearly_complete_2000_2025.csv")
-df["Date"] = pd.to_datetime(df["Date"])
+df["Date"] = pd.to_datetime(df["Date"], errors='coerce')
 currencies = ["Australian Dollar", "Euro", "Japanese Yen", "Thai Baht", "U.K. Pound Sterling"]
 df["Date_numeric"] = df["Date"].map(lambda x: x.timestamp())
 
+# คำนวณสถิติสำหรับแต่ละสกุลเงิน (Mean, Max Change, Min Change, Std Dev, Median)
 stats = {}
 for currency in currencies:
     stats[currency] = {
         "Mean": df[currency].mean(),
-        "Max Change (%)": ((df[currency].pct_change().max()) * 100).round(2),
-        "Min Change (%)": ((df[currency].pct_change().min()) * 100).round(2),
+        "Max Change (%)": ((df[currency].pct_change().max()) * 100).round(2) if not df[currency].empty else 0,
+        "Min Change (%)": ((df[currency].pct_change().min()) * 100).round(2) if not df[currency].empty else 0,
         "Std Dev": df[currency].std(),
         "Median": df[currency].median()
     }
@@ -90,7 +131,10 @@ stats_df = pd.DataFrame(stats).T
 print("\nสถิติ 5 รายการ:")
 print(stats_df)
 
-# --------------------- สร้างกราฟ 10 รายการ ด้วย Plotly ---------------------
+# ╔══════════════════════════════════════╗
+# ║         PLOTLY GRAPH CREATION        ║
+# ╚══════════════════════════════════════╝
+# สร้างกราฟ 10 รายการด้วย Plotly เพื่อแสดงผลใน Dashboard
 # กราฟ 1: Bar Yearly % Change
 pct_change_df = df[currencies].pct_change().dropna() * 100
 dates_for_pct = df["Date"][1:]
@@ -103,7 +147,7 @@ fig1.add_hline(y=0, line_dash="dash", line_color="gray", line_width=0.5)
 
 # กราฟ 2: THB with MA
 fig2 = go.Figure()
-fig2.add_trace(go.Scatter(x=df["Date"], y=df["Thai Baht"], name="THB", line=dict(color=pastel_colors[3])))
+fig2.add_trace(go.Scatter(x=df["Date"], y=df["Thai Baht"], name="Thai Baht", line=dict(color=pastel_colors[3])))
 ma5 = df["Thai Baht"].rolling(window=5, center=True).mean()
 fig2.add_trace(go.Scatter(x=df["Date"], y=ma5, name="5-Year MA", line=dict(dash="dot", color=pastel_colors[1])))
 ma10 = df["Thai Baht"].rolling(window=10, center=True).mean()
@@ -120,18 +164,21 @@ coeff = np.polyfit(df["Euro"], df["U.K. Pound Sterling"], 2)
 x = np.linspace(df["Euro"].min(), df["Euro"].max(), 100)
 trend = np.polyval(coeff, x)
 fig3.add_trace(go.Scatter(x=x, y=trend, name="Quadratic Trend", line=dict(dash="dash", color=pastel_colors[2])))
-fig3.update_layout(title="EUR vs GBP Relationship", xaxis_title="EUR (vs USD)", yaxis_title="GBP (vs USD)")
+fig3.update_layout(title="Euro vs U.K. Pound Sterling Relationship", xaxis_title="Euro (vs USD)", yaxis_title="U.K. Pound Sterling (vs USD)")
 
 # กราฟ 4: Correlation Heatmap
 fig4 = px.imshow(df[currencies].corr(), text_auto=".2f", color_continuous_scale="Blues", 
-                 title="Correlation Between Currencies")
+                 title="Correlation Between Currencies",
+                 labels=dict(x="Currency", y="Currency", color="Correlation"))
 fig4.update_layout(width=600, height=600)
+fig4.update_xaxes(ticktext=currencies, tickvals=currencies)
+fig4.update_yaxes(ticktext=currencies, tickvals=currencies)
 
 # กราฟ 5: Area Chart JPY
 fig5 = go.Figure()
-fig5.add_trace(go.Scatter(x=df["Date"], y=df["Japanese Yen"], fill="tozeroy", name="JPY Rate (Area)", 
+fig5.add_trace(go.Scatter(x=df["Date"], y=df["Japanese Yen"], fill="tozeroy", name="Japanese Yen Rate (Area)", 
                           line_color=pastel_colors[5], fillcolor=pastel_colors[2], opacity=0.5))
-fig5.add_trace(go.Scatter(x=df["Date"], y=df["Japanese Yen"], name="JPY Rate (Line)", line_color=pastel_colors[6]))
+fig5.add_trace(go.Scatter(x=df["Date"], y=df["Japanese Yen"], name="Japanese Yen Rate (Line)", line_color=pastel_colors[6]))
 fig5.update_layout(title="Japanese Yen Exchange Rate (Area Chart)", xaxis_title="Year", yaxis_title="Exchange Rate (JPY/USD)", 
                    legend_title="JPY Metrics")
 
@@ -140,7 +187,7 @@ subset_currencies = ["Australian Dollar", "Euro", "U.K. Pound Sterling"]
 fig6 = go.Figure()
 for i, currency in enumerate(subset_currencies):
     fig6.add_trace(go.Box(y=df[currency], name=currency, marker_color=pastel_colors[i], boxmean=True))
-fig6.update_layout(title="Exchange Rate Distribution (AUD, EUR, GBP)", xaxis_title="Currency", yaxis_title="Exchange Rate (vs USD)")
+fig6.update_layout(title="Exchange Rate Distribution (Australian Dollar, Euro, U.K. Pound Sterling)", xaxis_title="Currency", yaxis_title="Exchange Rate (vs USD)")
 
 # กราฟ 7: Donut Chart THB ทุก 5 ปี
 df_thb_5year = df[df["Date"].dt.year % 5 == 0]
@@ -149,7 +196,7 @@ fig7 = px.pie(df_thb_5year, values="Thai Baht", names=df_thb_5year["Date"].dt.ye
               title="Thai Baht Exchange Rate Distribution Every 5 Years (Donut Chart)")
 fig7.update_traces(textinfo='percent+label', hoverinfo='label+percent+value')
 
-# กราฟ 8: GBP Candlestick (ย้อนกลับไปเวอร์ชันดั้งเดิม)
+# กราฟ 8: GBP Candlestick
 df_candle = pd.DataFrame({
     "Date": df["Date"],
     "Open": df["U.K. Pound Sterling"].shift(1),
@@ -160,7 +207,7 @@ df_candle = pd.DataFrame({
 fig8 = go.Figure(data=[go.Candlestick(x=df_candle["Date"], open=df_candle["Open"], high=df_candle["High"], 
                                       low=df_candle["Low"], close=df_candle["Close"], 
                                       increasing_line_color=pastel_colors[2], decreasing_line_color=pastel_colors[3])])
-fig8.update_layout(title="GBP Candlestick Chart", xaxis_title="Year", yaxis_title="Exchange Rate (GBP/USD)")
+fig8.update_layout(title="U.K. Pound Sterling Candlestick Chart", xaxis_title="Year", yaxis_title="Exchange Rate (GBP/USD)")
 
 # กราฟ 9: Stacked Bar Max/Min % Change
 fig9 = go.Figure()
@@ -173,18 +220,21 @@ fig9.update_layout(title="Max, Min % Change & Mean by Currency", xaxis_title="Cu
 # กราฟ 10: Bar JPY % Change รายปี
 jpy_pct_change = df["Japanese Yen"].pct_change().dropna() * 100
 fig10 = go.Figure()
-fig10.add_trace(go.Bar(x=dates_for_pct, y=jpy_pct_change, name="JPY % Change", marker_color=pastel_colors[2], opacity=0.7))
+fig10.add_trace(go.Bar(x=dates_for_pct, y=jpy_pct_change, name="Japanese Yen % Change", marker_color=pastel_colors[2], opacity=0.7))
 ma3_jpy = jpy_pct_change.rolling(window=3, center=True).mean()
 fig10.add_trace(go.Scatter(x=dates_for_pct, y=ma3_jpy, name="3-Year MA", line=dict(dash="dash", color=pastel_colors[1])))
 fig10.update_layout(title="Japanese Yen Yearly % Change", xaxis_title="Year", yaxis_title="% Change", 
                     legend_title="JPY Metrics")
 fig10.add_hline(y=0, line_dash="dash", line_color="gray", line_width=0.5)
 
-# --------------------- Dashboard ด้วย Streamlit ---------------------
+# ╔══════════════════════════════════════╗
+# ║         STREAMLIT DASHBOARD          ║
+# ╚══════════════════════════════════════╝
+# สร้าง Dashboard ด้วย Streamlit เพื่อแสดงข้อมูลและกราฟ
 st.set_page_config(page_title="Exchange Rate Dashboard", layout="wide")
 
 st.markdown("<h1 style='text-align: center; color: #2E86C1;'>Exchange Rate Dashboard (2000-2025)</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #666;'>Explore yearly exchange rates for AUD, EUR, JPY, THB, and GBP against USD</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #666;'>Explore yearly exchange rates for Australian Dollar, Euro, Japanese Yen, Thai Baht, and U.K. Pound Sterling against USD</p>", unsafe_allow_html=True)
 
 with st.expander("Data & Statistics", expanded=True):
     # ปรับเลย์เอาต์ให้สมดุลเท่ากัน (1:1)
@@ -198,10 +248,17 @@ with st.expander("Data & Statistics", expanded=True):
                 'background-color': '#F9FAFB',  # พื้นหลังสีอ่อน
                 'color': '#333333',
                 'border': '1px solid #E5E7EB',  # เส้นขอบบาง
-                'font-size': '14px',  # ฟอนต์เล็กลง
+                'font-size': '14px', 
             }),
             height=250,  # ปรับความสูงให้สมดุลกับ Key Statistics
             use_container_width=True
+        )
+        # เพิ่มปุ่มดาวน์โหลด
+        st.download_button(
+            label="Download Data as CSV",
+            data=df.drop(columns=["Date_numeric"]).to_csv(index=False),
+            file_name="exchange_rate_data.csv",
+            mime="text/csv"
         )
 
     with col2:
@@ -254,4 +311,5 @@ st.markdown(
     "</p>",
     unsafe_allow_html=True
 )
+
 print("Dashboard พร้อมใช้งาน! รันด้วย 'streamlit run your_script.py'")
