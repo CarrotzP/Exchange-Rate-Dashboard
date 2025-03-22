@@ -15,7 +15,7 @@ import numpy as np
 # ╚══════════════════════════════════════╝
 # กำหนดสีโทนพาสเทลสำหรับกราฟ เพื่อให้ดูสบายตา
 pastel_colors = ['#FFCCCB', '#ADD8E6', '#90EE90', '#D8BFD8', '#F0E68C', 
-                 '#FFDAB9', '#E6E6FA', '#B0E0E6', '#FFFACD', '#D8BFD8']
+                '#FFDAB9', '#E6E6FA', '#B0E0E6', '#FFFACD', '#D8BFD8']
 
 # ╔══════════════════════════════════════╗
 # ║         DATA WAREHOUSE CREATION      ║
@@ -134,7 +134,7 @@ fig1 = go.Figure()
 for i, currency in enumerate(currencies):
     fig1.add_trace(go.Bar(x=dates_for_pct, y=pct_change_df[currency], name=currency, marker_color=pastel_colors[i], opacity=0.7))
 fig1.update_layout(title="Yearly % Change of All Currencies", xaxis_title="Year", yaxis_title="% Change", 
-                   legend_title="Currencies", showlegend=True, barmode='group')
+                legend_title="Currencies", showlegend=True, barmode='group')
 fig1.add_hline(y=0, line_dash="dash", line_color="gray", line_width=0.5)
 
 # กราฟ 2: THB with MA
@@ -145,12 +145,12 @@ fig2.add_trace(go.Scatter(x=df["Date"], y=ma5, name="5-Year MA", line=dict(dash=
 ma10 = df["Thai Baht"].rolling(window=10, center=True).mean()
 fig2.add_trace(go.Scatter(x=df["Date"], y=ma10, name="10-Year MA", line=dict(dash="dash", color=pastel_colors[4])))
 fig2.update_layout(title="Thai Baht with Moving Averages", xaxis_title="Year", yaxis_title="Exchange Rate (THB/USD)", 
-                   legend_title="THB Metrics")
+                legend_title="THB Metrics")
 
 # กราฟ 3: Scatter EUR vs GBP
 fig3 = px.scatter(df, x="Euro", y="U.K. Pound Sterling", color=df["Date"].dt.year.astype(str), 
-                  color_discrete_sequence=pastel_colors, labels={"color": "Year"}, hover_data=["Date"], 
-                  size_max=10)
+                color_discrete_sequence=pastel_colors, labels={"color": "Year"}, hover_data=["Date"], 
+                size_max=10)
 fig3.update_traces(marker=dict(size=12))
 coeff = np.polyfit(df["Euro"], df["U.K. Pound Sterling"], 2)
 x = np.linspace(df["Euro"].min(), df["Euro"].max(), 100)
@@ -160,8 +160,8 @@ fig3.update_layout(title="Euro vs U.K. Pound Sterling Relationship", xaxis_title
 
 # กราฟ 4: Correlation Heatmap
 fig4 = px.imshow(df[currencies].corr(), text_auto=".2f", color_continuous_scale="Blues", 
-                 title="Correlation Between Currencies",
-                 labels=dict(x="Currency", y="Currency", color="Correlation"))
+                title="Correlation Between Currencies",
+                labels=dict(x="Currency", y="Currency", color="Correlation"))
 fig4.update_layout(width=600, height=600)
 fig4.update_xaxes(ticktext=currencies, tickvals=currencies)
 fig4.update_yaxes(ticktext=currencies, tickvals=currencies)
@@ -169,10 +169,10 @@ fig4.update_yaxes(ticktext=currencies, tickvals=currencies)
 # กราฟ 5: Area Chart JPY
 fig5 = go.Figure()
 fig5.add_trace(go.Scatter(x=df["Date"], y=df["Japanese Yen"], fill="tozeroy", name="Japanese Yen Rate (Area)", 
-                          line_color=pastel_colors[5], fillcolor=pastel_colors[2], opacity=0.5))
+                        line_color=pastel_colors[5], fillcolor=pastel_colors[2], opacity=0.5))
 fig5.add_trace(go.Scatter(x=df["Date"], y=df["Japanese Yen"], name="Japanese Yen Rate (Line)", line_color=pastel_colors[6]))
 fig5.update_layout(title="Japanese Yen Exchange Rate (Area Chart)", xaxis_title="Year", yaxis_title="Exchange Rate (JPY/USD)", 
-                   legend_title="JPY Metrics")
+                legend_title="JPY Metrics")
 
 # กราฟ 6: Box Plot AUD, EUR, GBP
 subset_currencies = ["Australian Dollar", "Euro", "U.K. Pound Sterling"]
@@ -184,8 +184,8 @@ fig6.update_layout(title="Exchange Rate Distribution (Australian Dollar, Euro, U
 # กราฟ 7: Donut Chart THB ทุก 5 ปี
 df_thb_5year = df[df["Date"].dt.year % 5 == 0]
 fig7 = px.pie(df_thb_5year, values="Thai Baht", names=df_thb_5year["Date"].dt.year, hole=0.3, 
-              color_discrete_sequence=pastel_colors[:len(df_thb_5year)], 
-              title="Thai Baht Exchange Rate Distribution Every 5 Years (Donut Chart)")
+            color_discrete_sequence=pastel_colors[:len(df_thb_5year)], 
+            title="Thai Baht Exchange Rate Distribution Every 5 Years (Donut Chart)")
 fig7.update_traces(textinfo='percent+label', hoverinfo='label+percent+value')
 
 # กราฟ 8: GBP Candlestick
@@ -197,8 +197,8 @@ df_candle = pd.DataFrame({
     "Close": df["U.K. Pound Sterling"]
 }).dropna()
 fig8 = go.Figure(data=[go.Candlestick(x=df_candle["Date"], open=df_candle["Open"], high=df_candle["High"], 
-                                      low=df_candle["Low"], close=df_candle["Close"], 
-                                      increasing_line_color=pastel_colors[2], decreasing_line_color=pastel_colors[3])])
+                                    low=df_candle["Low"], close=df_candle["Close"], 
+                                    increasing_line_color=pastel_colors[2], decreasing_line_color=pastel_colors[3])])
 fig8.update_layout(title="U.K. Pound Sterling Candlestick Chart", xaxis_title="Year", yaxis_title="Exchange Rate (GBP/USD)")
 
 # กราฟ 9: Stacked Bar Max/Min % Change
@@ -207,7 +207,7 @@ fig9.add_trace(go.Bar(x=stats_df.index, y=stats_df["Max Change (%)"], name="Max 
 fig9.add_trace(go.Bar(x=stats_df.index, y=stats_df["Min Change (%)"], name="Min % Change", marker_color=pastel_colors[3]))
 fig9.add_trace(go.Bar(x=stats_df.index, y=stats_df["Mean"], name="Mean Rate", marker_color=pastel_colors[4], opacity=0.5))
 fig9.update_layout(title="Max, Min % Change & Mean by Currency", xaxis_title="Currency", yaxis_title="% Change / Rate", 
-                   barmode='overlay')
+                barmode='overlay')
 
 # กราฟ 10: Bar JPY % Change รายปี
 jpy_pct_change = df["Japanese Yen"].pct_change().dropna() * 100
